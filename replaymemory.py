@@ -8,7 +8,7 @@ class ReplayMemory:
         if seed is not None:
             random.seed(seed)
 
-    def appned(self, experience):
+    def append(self, experience):
         self.memory.append(experience)
 
     def sample(self, batch_size):
