@@ -5,16 +5,13 @@ from dqn import DQN
 
 class Agent:
     def run(self, is_training=True, render=False):
-        # Set up environment
-        render_mode = "human" if render else None
-        env = gymnasium.make("FlappyBird-v0", render_mode='human' if render else None, use_lidar=False)
+        env = gymnasium.make("CartPole-v1", render_mode='human' if render else None)
 
         num_states = env.observation_space.shape[0] 
         num_actions = env.action_space.n
         
         # Initialize the DQN agent
-        policty_dqn = DQN(num_states, num_actions)
-        
+        policty_dqn = DQN(num_states, num_actions) 
         
         obs, _ = env.reset()
         while True:
@@ -37,8 +34,8 @@ class Agent:
 # Example usage
 if __name__ == "__main__":
     agent = Agent()
-    agent.run_episode()
-    agent.close()
+    agent.run(render=True)
+    
 
 
 # env = gymnasium.make("FlappyBird-v0", render_mode="human", use_lidar=False)
