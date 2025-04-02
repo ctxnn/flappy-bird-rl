@@ -1,9 +1,27 @@
-cartpolev1: 
-  env_name: CartPole-v1
-  epsilon_start: 1.0
-  epsilon_end: 0.05
-  epsilon_decay: 0.995
+cartpole1:
+  env_id: CartPole-v1
+  replay_memory_size: 100000
+  mini_batch_size: 64
+  epsilon_init: 1
+  epsilon_decay: 0.9995
+  epsilon_min: 0.01
+  network_sync_rate: 100
+  learning_rate_a: 0.001
+  discount_factor_g: 0.99
+  stop_on_reward: 100000
+  fc1_nodes: 128
+
+flappybird1:
+  env_id: FlappyBird-v0
+  replay_memory_size: 100000
   mini_batch_size: 32
-  replay_memory_size: 10000
+  epsilon_init: 1
+  epsilon_decay: 0.9995
+  epsilon_min: 0.05
   network_sync_rate: 10
-  discount_factor : 0.99
+  learning_rate_a: 0.0001
+  discount_factor_g: 0.99
+  stop_on_reward: 100000
+  fc1_nodes: 512
+  env_make_params:
+    use_lidar: False
