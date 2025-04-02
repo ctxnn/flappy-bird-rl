@@ -5,39 +5,43 @@ This repository implements Deep Q-Learning (DQL) to solve reinforcement learning
 ## 1. Markov Decision Process (MDP) Formulation
 
 The game is modeled as an MDP with:
-- State space $\mathcal{S}$ (game state variables)
-- Action space $\mathcal{A}$ (possible actions)
-- Reward function $r_t = R(s_t,a_t)$
-- Transition dynamics $s_{t+1} \sim P(s_t,a_t)$
+- State space S (game state variables)
+- Action space A (possible actions)
+- Reward function r_t = R(s_t, a_t)
+- Transition dynamics s_{t+1} ~ P(s_t, a_t)
 
 ## 2. Q-Learning Fundamentals
 
-The Q-function $Q^\pi(s,a)$ represents the expected return when taking action $a$ in state $s$ and following policy $\pi$ thereafter:
+The Q-function Q^π(s,a) represents the expected return when taking action a in state s and following policy π thereafter:
 
 $$
-Q^\pi(s,a) = \mathbb{E}\left[\sum_{k=0}^\infty \gamma^k r_{t+k} \mid s_t=s, a_t=a\right]
+Q^\pi(s,a) = E[\sum_{k=0}^\infty \gamma^k r_{t+k} | s_t=s, a_t=a]
 $$
 
-where $\gamma \in [0,1]$ is the discount factor.
+where γ ∈ [0,1] is the discount factor.
 
 ## 3. Bellman Optimality Equation
 
 The optimal Q-function satisfies:
 
 $$
-Q^*(s,a) = \mathbb{E}\left[r + \gamma \max_{a'} Q^*(s',a') \mid s,a\right]
+Q^*(s,a) = E[r + \gamma \max_{a'} Q^*(s',a') | s,a]
 $$
 
 ## 4. Deep Q-Network (DQN) Approximation
 
-We approximate $Q^*(s,a)$ using a neural network $Q(s,a;\theta)$ with parameters $\theta$. The network architecture is:
+We approximate Q*(s,a) using a neural network Q(s,a;θ) with parameters θ. The network architecture is:
 
 $$
-\begin{align*}
-\text{Input} &\rightarrow \text{FC}_1(\text{ReLU}) \rightarrow \text{FC}_2(\text{ReLU}) \rightarrow \text{Output} \\
-\text{where FC}_1 &: \mathbb{R}^{|S|} \rightarrow \mathbb{R}^{n_{hidden}} \\
-\text{FC}_2 &: \mathbb{R}^{n_{hidden}} \rightarrow \mathbb{R}^{|\mathcal{A}|}
-\end{align*}
+\text{Input} \rightarrow \text{FC}_1(\text{ReLU}) \rightarrow \text{FC}_2(\text{ReLU}) \rightarrow \text{Output}
+$$
+
+$$
+\text{FC}_1: R^{|S|} \rightarrow R^{n_{\text{hidden}}}
+$$
+
+$$
+\text{FC}_2: R^{n_{\text{hidden}}} \rightarrow R^{|A|}
 $$
 
 ## 5. Loss Function
@@ -45,20 +49,20 @@ $$
 The network is trained to minimize the temporal difference error:
 
 $$
-\mathcal{L}(\theta) = \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}}\left[\left(r + \gamma \max_{a'} Q(s',a';\theta^-) - Q(s,a;\theta)\right)^2\right]
+L(\theta) = E_{(s,a,r,s') \sim D}[(r + \gamma \max_{a'} Q(s',a';\theta^-) - Q(s,a;\theta))^2]
 $$
 
 where:
-- $\mathcal{D}$ is the replay buffer
-- $\theta^-$ are target network parameters
-- $\gamma$ is the discount factor
+- D is the replay buffer
+- θ^- are target network parameters
+- γ is the discount factor
 
 ## 6. Experience Replay
 
-The replay buffer $\mathcal{D}$ stores transitions $(s_t,a_t,r_t,s_{t+1})$ and samples mini-batches for training:
+The replay buffer D stores transitions (s_t, a_t, r_t, s_{t+1}) and samples mini-batches for training:
 
 $$
-(s_i,a_i,r_i,s_{i+1}) \sim \text{Uniform}(\mathcal{D})
+(s_i, a_i, r_i, s_{i+1}) \sim \text{Uniform}(D)
 $$
 
 ## 7. ε-Greedy Exploration
@@ -67,12 +71,12 @@ The action selection policy balances exploration and exploitation:
 
 $$
 \pi(s) = \begin{cases}
-\text{Uniform}(\mathcal{A}) & \text{with probability } \epsilon \\
+\text{Uniform}(A) & \text{with probability } \epsilon \\
 \arg\max_a Q(s,a;\theta) & \text{otherwise}
 \end{cases}
 $$
 
-where $\epsilon$ decays over time: $\epsilon \leftarrow \max(\epsilon_{min}, \epsilon \cdot \epsilon_{decay})$
+where ε decays over time: ε ← max(ε_{min}, ε · ε_{decay})
 
 ## Usage
 
