@@ -18,6 +18,7 @@ import itertools
 import flappy_bird_gymnasium
 import os
 import torch.nn.functional as F
+import wandb
 
 # For printing date and time
 DATE_FORMAT = "%m-%d %H:%M:%S"
@@ -77,8 +78,33 @@ class Agent():
         self.rewards_per_episode = []
         self.epsilon_history = []
 
+        # Initialize wandb
+        self.wandb_run = None
+
+    def init_wandb(self):
+        """Initialize Weights & Biases tracking"""
+        self.wandb_run = wandb.init(
+            project="flappy-bird-rl",
+            config={
+                "env_id": self.env_id,
+                "learning_rate": self.learning_rate_a,
+                "discount_factor": self.discount_factor_g,
+                "network_sync_rate": self.network_sync_rate,
+                "replay_memory_size": self.replay_memory_size,
+                "mini_batch_size": self.mini_batch_size,
+                "epsilon_init": self.epsilon_init,
+                "epsilon_decay": self.epsilon_decay,
+                "epsilon_min": self.epsilon_min,
+                "fc1_nodes": self.fc1_nodes,
+            },
+            name=f"{self.hyperparameter_set}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        )
+
     def run(self, is_training=True, render=False):
         if is_training:
+            # Initialize wandb at the start of training
+            self.init_wandb()
+            
             start_time = datetime.now()
             last_graph_update_time = start_time
 
@@ -132,6 +158,7 @@ class Agent():
 
             terminated = False      # True when agent reaches goal or fails
             episode_reward = 0.0    # Used to accumulate rewards per episode
+            episode_loss = None     # Track loss for the episode
 
             # Perform actions until episode terminates or reaches max rewards
             # (on some envs, it is possible for the agent to train to a point where it NEVER terminates, so stop on reward is necessary)
@@ -190,19 +217,37 @@ class Agent():
                     self.save_graph()
                     last_graph_update_time = current_time
 
-                # If enough experience has been collected
-                if len(memory)>self.mini_batch_size:
+                # Train if enough samples
+                if is_training and len(memory) > self.mini_batch_size:
                     mini_batch = memory.sample(self.mini_batch_size)
-                    self.optimize(mini_batch, policy_dqn, target_dqn)
-
+                    episode_loss = self.optimize(mini_batch, policy_dqn, target_dqn)
+                    
                     # Decay epsilon
                     epsilon = max(epsilon * self.epsilon_decay, self.epsilon_min)
+                    # Track epsilon history
                     self.epsilon_history.append(epsilon)
-
-                    # Copy policy network to target network after a certain number of steps
+                    
                     if step_count > self.network_sync_rate:
                         target_dqn.load_state_dict(policy_dqn.state_dict())
-                        step_count=0
+                        step_count = 0
+
+            # Log metrics to wandb after each episode
+            if is_training and self.wandb_run is not None:
+                metrics = {
+                    "episode": episode,
+                    "reward": episode_reward,
+                    "epsilon": epsilon,
+                    "avg_reward": np.mean(self.rewards_per_episode[-100:]) if self.rewards_per_episode else 0,
+                }
+                # Only add loss if we had training steps this episode
+                if episode_loss is not None:
+                    metrics["loss"] = episode_loss
+                    
+                self.wandb_run.log(metrics)
+
+        if is_training and self.wandb_run is not None:
+            # Close wandb run when training ends
+            self.wandb_run.finish()
 
     def save_graph(self):
         # Save plots
@@ -266,6 +311,21 @@ class Agent():
         self.optimizer.zero_grad()  # Clear gradients
         loss.backward()             # Compute gradients
         self.optimizer.step()       # Update network parameters i.e. weights and biases
+
+        # Log additional training metrics to wandb
+        if self.wandb_run is not None:
+            grad_norm = torch.nn.utils.clip_grad_norm_(policy_dqn.parameters(), float('inf'))
+            self.wandb_run.log({
+                "gradient_norm": grad_norm,
+                "target_q_mean": target_q.mean().item(),
+                "target_q_max": target_q.max().item(),
+                "q_value_diff": (current_q - target_q).abs().mean().item(),  # Q-value prediction error
+                "termination_rate": terminations.float().mean().item(),  # How often episodes end
+                "reward_mean": rewards.mean().item(),  # Average reward in batch
+                "target_q_max": target_q.max().item(),
+            })
+
+        return loss.item()
 
 if __name__ == '__main__':
     # Parse command line inputs
